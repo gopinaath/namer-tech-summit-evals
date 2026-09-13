@@ -1,7 +1,19 @@
 # Setup
 
-A Python environment and Bedrock credentials. Ten minutes. Every error the notebook can
-print is listed at the bottom with the fix.
+Clone the repo, make a Python environment, get Bedrock credentials. Ten minutes. Every error
+the notebook can print is listed at the bottom with the fix.
+
+---
+
+## 0. Get the code
+
+```bash
+git clone https://github.com/gopinaath/namer-tech-summit-evals.git
+cd namer-tech-summit-evals
+```
+
+Everything below assumes you're in that folder. Clone rather than downloading a zip — if a
+fix lands on the day, `git pull` picks it up.
 
 ---
 
@@ -10,8 +22,6 @@ print is listed at the bottom with the fix.
 **Python 3.9+**, in a venv — the notebook refuses to install into a bare system Python.
 
 ```bash
-cd NAMER-Tech-Summit
-
 python3 -m venv .venv
 source .venv/bin/activate            # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt      # anthropic[bedrock] + boto3 + ipykernel

@@ -22,7 +22,6 @@ zipped and handed out on its own.
 | [`demo/Building_an_Eval_DEMO.ipynb`](demo/Building_an_Eval_DEMO.ipynb) | **The worked demo.** Every blank filled. Run it live, or hand it out afterwards. |
 | [`Bigger_Model_or_Better_Agent.ipynb`](Bigger_Model_or_Better_Agent.ipynb) | **The companion lab.** A worked experiment, not a fill-in: measures a bigger model against a better-engineered agent on the same suite. Optional, standalone, ~20 min. |
 | [`Multi_Provider_on_Bedrock.ipynb`](Multi_Provider_on_Bedrock.ipynb) | **The multi-provider companion.** Claude Haiku 4.5 against OpenAI's GPT 5.6 / GPT 6 reasoning models through Bedrock's Converse API — the same agent, the same graders, ported. Optional, standalone, ~20 min. |
-| [`FACILITATOR.md`](FACILITATOR.md) | Timings, talk track, the failures to expect, and what to do when the room gets stuck. |
 | [`SETUP.md`](SETUP.md) | Bedrock credentials, Python environment, and the errors people actually hit. |
 | `requirements.txt` | Three packages. That's the whole dependency list. |
 | `workshop_setup.py` | The setup every notebook runs in its first cell: kernel safety check, Bedrock credentials from `.env`, and a real ping of each model. Imported, not edited — but every failure message it prints names the fix, so it's worth a look if setup misbehaves. |
@@ -49,18 +48,6 @@ parts you build the machinery to prove that:
 
 The habit being taught, more than any single technique: **measure before you change,
 compare after, and never trust a single run.**
-
-### What attendees leave with
-
-- A task schema, three deterministic graders, and an LLM judge that returns a
-  schema-validated verdict on Bedrock via a forced tool call — the pattern that works on
-  every model, including the newer ones where Bedrock still rejects `output_config`
-- A concurrent runner with per-task error isolation and Bedrock-appropriate throttling behaviour
-- A before/after comparison that flags regressions — the seed of a CI regression gate
-- Every result set self-describing: `config` records the resolved model ID and the agent that
-  produced it, so runs stay comparable weeks later
-- An answer to the question every model-selection argument turns on — whether a higher-tier
-  model fixes a broken agent or merely hides the bug — measured on their own suite
 
 ---
 
@@ -92,56 +79,20 @@ Then open `Building_an_Eval.ipynb` in VS Code, pick the `.venv` kernel (kernel p
 top right), and run the first cell. A green **"✓ Connected to Claude on Bedrock"**
 banner means you're ready.
 
-> That cell only imports `workshop_setup.py` from beside the notebook and binds what it
-> hands back. The kernel guard, credential resolution and model pinging live in that file
-> rather than in the notebook — 330 lines across two cells became 29 in one, so the workbook
-> opens on the material instead of on the plumbing. Re-running the cell re-reads `.env`,
-> re-checks the install and re-pings every model — exactly what you want after fixing a
-> credential.
->
-> The setup cell verifies your credentials with a real API call to each model, because a
-> valid credential without model access looks identical until you use it — the single most
-> common workshop failure. Never paste a key into a notebook cell — it belongs in `.env`.
-
 ### Prerequisites
 
 - Python 3.9+
 - Bedrock **model access** granted for Claude (Bedrock console → Model access). Granted per
   account, one model at a time. Any region with a Bedrock endpoint works — the notebook uses
   global inference profiles, so you don't need to hunt for a region that has every model.
-- For `Multi_Provider_on_Bedrock.ipynb` only: also grant access to at least one OpenAI GPT
-  model (e.g. `gpt-6-astra`). Same console page, same account-level grant. Without it that
-  notebook still runs, but it has one column instead of two and nothing to compare.
-- A few dollars of Bedrock usage per attendee for a full pass. Everything up to Part 7 runs
-  on Haiku; Part 7 is the bulk of the cost — it repeats the suite on Sonnet and
-  Fable 5.1, then runs both agent versions across the tier ladder. Trim `SWEEP_EXTRA` and
-  `TIER_MODELS` in those cells to cut it back. The companion lab is a few dollars more, most
-  of it on Haiku; trim `RUNS`, `LADDER_MODELS` and `CONFIG_LADDER`. The multi-provider
-  notebook is the cheapest of the three — about 70 calls, most of them tiny.
 
 ---
 
 ## Running it as a workshop
 
-Read [`FACILITATOR.md`](FACILITATOR.md) first. The short version:
-
-| Part | Minutes | Mode |
-|---|---|---|
-| Setup | 10 | Together |
-| Part 1 (meet the agent) | 10 | Together |
-| Part 2 (framework walkthrough) | 10 | You talk, they read |
-| Part 3 (write tasks) | 20 | **Solo / pairs** |
-| Part 4 (run + read results) | 10 | Solo, then discuss |
-| Part 5 (fix + compare) | 20 | **Solo / pairs** |
-| Part 6 (LLM judge) | 10 | Solo |
-| Part 7 + wrap-up | 10 | Together |
-
-Parts 3 and 5 are the workshop. Everything else is scaffolding around them — if you're
-running short, protect those two and talk through the rest from the demo notebook.
-
 ---
 
-## The companion lab
+## Optional lab # 1
 
 [`Bigger_Model_or_Better_Agent.ipynb`](Bigger_Model_or_Better_Agent.ipynb) is separate and
 optional. It answers the question Part 7 raises but can't fully settle, because the main
@@ -163,25 +114,11 @@ the same `.env`.
 
 ---
 
-## The multi-provider companion
+## Optional lab # 2 :  multi-provider 
 
 [`Multi_Provider_on_Bedrock.ipynb`](Multi_Provider_on_Bedrock.ipynb) answers the other
 question the workshop raises and doesn't settle: **does this eval still work if the model
 isn't Claude?**
-
-It ports the workshop's agent, graders, runner and judge from `anthropic.AnthropicBedrock` to
-Bedrock's **Converse** API, and runs the same six-task suite on Claude Haiku 4.5 and on
-OpenAI's `global.openai.gpt-6-astra`. The answer turns out to be encouraging and specific: the
-graders port with *zero* changes, the whole tool-use protocol ports, and what breaks is six
-small things — `temperature` refused outright, a `maxTokens` floor of 16 that makes a
-one-token liveness ping report a working model as unreachable, `reasoningContent` blocks that
-appear at unpredictable positions, `redactedContent` arriving as `bytes` that `json.dumps`
-refuses, `toolUseId` formats that differ, and reasoning tokens that `usage` never reports.
-
-Scope is deliberately narrow: two providers, one wire format. It is not a provider survey and
-not a leaderboard — six tasks cannot characterise a model, they can only exercise a harness.
-It needs the same `.env` plus one OpenAI model grant; with only Claude granted it still runs
-end to end, minus the second column.
 
 ---
 
@@ -219,11 +156,3 @@ python tools/nbbuild.py --check    # exit 1 if a notebook is stale (use in CI)
 Edit the `.py` sources, not the `.ipynb` files — a direct notebook edit is overwritten on
 the next build. The shipped notebooks are committed without outputs so diffs stay
 readable.
-
----
-
-## Credits
-
-Adapted from the Anthropic Partner Basecamp *Building an Eval* build-along
-(`day2/01_evals/`), restructured as a standalone Bedrock-only workshop with a worked
-demo, a before/after comparison, and a judge that works on the Bedrock endpoint.
