@@ -68,7 +68,7 @@ Either way the credential needs `bedrock:InvokeModel`. Check IAM creds haven't e
 
 ## 3. Verify
 
-Run the first two cells of `Building_an_Eval.ipynb`. You're looking for:
+Run the first cell of `Building_an_Eval.ipynb`. You're looking for:
 
 ```
 ✓ Ready — anthropic installed for /…/.venv/bin/python
@@ -162,6 +162,14 @@ compare them across providers.
 ---
 
 ## Troubleshooting
+
+### "Can't find workshop_setup.py"
+
+The setup cell imports `workshop_setup.py`, which ships in the same folder as the notebooks.
+It looks in the kernel's working directory and then upwards, so the demo copy in `demo/`
+finds it too. This message means neither worked: you're most likely running a notebook that
+was copied out of the workshop folder on its own. Move it back beside `workshop_setup.py`, or
+start Jupyter from the folder containing `requirements.txt`.
 
 ### "This kernel is a shared Python"
 

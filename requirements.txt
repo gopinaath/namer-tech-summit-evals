@@ -4,10 +4,20 @@
 #     pip install -r requirements.txt
 #
 # then select the .venv interpreter as your notebook kernel. Full guide: SETUP.md
-# Floors guarantee the API surface the notebook uses. Verified against anthropic 0.120.x.
+#
+# Versions the notebooks were last run clean on, end to end (2026-09-13):
+#     Python 3.11.1 · anthropic 1.5.0 · boto3/botocore 1.43.93 · ipykernel 7.3.0
+# The floors below sit deliberately lower, so nobody is forced into an upgrade they don't
+# need — but those are the only versions actually measured. Treat a floor as "no known
+# reason this fails", not as a tested minimum.
 
-anthropic[bedrock]>=0.69   # AnthropicBedrock (the bedrock-runtime client) + tool use. The
-                           # [bedrock] extra adds boto3/botocore: optional for the main
+anthropic[bedrock]>=0.69   # AnthropicBedrock (the bedrock-runtime client) + tool use. This
+                           # floor is asserted rather than measured: the notebooks use only
+                           # AnthropicBedrock, messages.create, tools and tool_choice, all
+                           # long-standing. One exception, and it isn't a notebook —
+                           # tools/check_structured_outputs.py passes output_config=, which
+                           # older SDKs reject. The [bedrock] extra adds boto3/botocore:
+                           # optional for the main
                            # workshop (only the IAM auth path needs it), but REQUIRED by
                            # Multi_Provider_on_Bedrock.ipynb, which drives Bedrock's Converse
                            # API through botocore directly on both auth paths. That notebook

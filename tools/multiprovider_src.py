@@ -86,7 +86,12 @@
 # > pool.
 
 # %%
+import importlib.util
 import json
+import os
+import re
+import subprocess
+import sys
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -484,8 +489,8 @@ CAPS, TOOL_IDS = {}, {}
 for _name, _id in CONVERSE_MODELS.items():
     CAPS[_name] = {}
     for _probe_name, _kwargs in PROBES:
-        # Not `_status`: that name belongs to the setup cell's banner function, and rebinding
-        # it here would turn any later `_status(...)` call into a TypeError on a string.
+        # `_probe_status`, not `_status`: this is one probe's outcome string, not the status of
+        # anything global, and the longer name says so at every use below.
         _probe_status, _resp = probe(_id, **_kwargs)
         CAPS[_name][_probe_name] = _probe_status
         # Record the tool-call ID format while we have a response that contains one:

@@ -71,7 +71,7 @@ about **vendors** — "we're not a Claude shop", "does this transfer?" — add
 
 In a room of 20, expect 3-5 people to have a credential problem. Two things help:
 
-1. Start setup **before** you start talking. "Run the first two cells now, while I
+1. Start setup **before** you start talking. "Run the first cell now, while I
    introduce this" buys you ten minutes of parallel debugging.
 2. Pair anyone still broken after five minutes with someone working. Do not debug one
    laptop while nineteen people watch.
@@ -79,6 +79,12 @@ In a room of 20, expect 3-5 people to have a credential problem. Two things help
 The setup cell makes a real one-token API call rather than just checking that a variable is
 set, because a valid credential without model access looks identical until you use it. Every
 error it can print has an entry in `SETUP.md`.
+
+The cell itself is short — it imports `workshop_setup.py` from beside the notebook and binds
+what that returns. When you're debugging someone's laptop, that file is where to look: the
+guard, the `.env` handling and the model pings are all in it, and each failure path prints the
+fix rather than a traceback. Re-running the cell picks up both an edited `.env` and an edited
+`workshop_setup.py`, so you never need to restart a kernel to retry.
 
 ---
 
@@ -501,7 +507,7 @@ account-level and not instant.
 
 ### The three things worth stopping on
 
-- **The silent failure** (early, right after the setup cells). Pointing the *Anthropic* client
+- **The silent failure** (early, right after the setup cell). Pointing the *Anthropic* client
   at a GPT model returns `400 unknown_parameter: 'anthropic_version'` — fine, loud, fixable.
   But the notebook then shows the same mistake against a different model returning **HTTP 200
   with `content = None`**, which flows straight through `parse_transcript` into an empty

@@ -395,7 +395,7 @@ print(f"Graders loaded: {list(GRADER_REGISTRY.keys())}")
 # %%
 # ── Eval runner (just run this cell) ──────────────────────────────────────────
 
-import json, time, traceback
+import json, os, time, traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 

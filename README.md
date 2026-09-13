@@ -25,6 +25,7 @@ zipped and handed out on its own.
 | [`FACILITATOR.md`](FACILITATOR.md) | Timings, talk track, the failures to expect, and what to do when the room gets stuck. |
 | [`SETUP.md`](SETUP.md) | Bedrock credentials, Python environment, and the errors people actually hit. |
 | `requirements.txt` | Three packages. That's the whole dependency list. |
+| `workshop_setup.py` | The setup every notebook runs in its first cell: kernel safety check, Bedrock credentials from `.env`, and a real ping of each model. Imported, not edited — but every failure message it prints names the fix, so it's worth a look if setup misbehaves. |
 | [`multi-provider.md`](multi-provider.md) | Investigation notes behind the multi-provider notebook: what was probed, what broke, and why the Converse path was chosen. Also the xAI and open-weight findings that stayed *out* of the notebook. |
 | `tools/` | Notebook build scripts, plus `check_structured_outputs.py` — a pre-session check that Part 6's `output_config` table still matches your account. Only needed if you're *running or maintaining* the workshop. |
 
@@ -88,9 +89,16 @@ Already have working AWS credentials (SSO, `aws configure`, an assumed role)? Sk
 token, keep `AWS_REGION`, and set `AWS_PROFILE` if you use a named profile.
 
 Then open `Building_an_Eval.ipynb` in VS Code, pick the `.venv` kernel (kernel picker,
-top right), and run the first two cells. A green **"✓ Connected to Claude on Bedrock"**
+top right), and run the first cell. A green **"✓ Connected to Claude on Bedrock"**
 banner means you're ready.
 
+> That cell only imports `workshop_setup.py` from beside the notebook and binds what it
+> hands back. The kernel guard, credential resolution and model pinging live in that file
+> rather than in the notebook — 330 lines across two cells became 29 in one, so the workbook
+> opens on the material instead of on the plumbing. Re-running the cell re-reads `.env`,
+> re-checks the install and re-pings every model — exactly what you want after fixing a
+> credential.
+>
 > The setup cell verifies your credentials with a real API call to each model, because a
 > valid credential without model access looks identical until you use it — the single most
 > common workshop failure. Never paste a key into a notebook cell — it belongs in `.env`.
@@ -187,15 +195,21 @@ tools/workbook_src.py       source for the workbook and the demo (plain Python, 
 tools/lab_src.py            source for the companion lab
 tools/multiprovider_src.py  source for the multi-provider Converse notebook
 tools/demo_cells/<id>.py    worked solutions that replace cells tagged `# %% id=<id>`
-tools/shared/setup.py       cells spliced into every source by `# %% include=setup`
+tools/shared/setup.py       the setup cell, spliced into every source by `# %% include=setup`
 tools/nbbuild.py            builds all four .ipynb files
+workshop_setup.py           the setup logic itself — shipped to attendees, not built
 ```
 
-`include=` exists so the credential and install handling has exactly one copy: all three
-sources need the same setup cells, and three copies would drift. Each notebook deliberately
-keeps its *own* runner rather than reusing the workbook's `run_eval` — the lab measures a
-grid of (config × model) and the multi-provider notebook runs on a Converse client, which are
-different shapes.
+Note the split: `tools/shared/setup.py` is the two *cells* an attendee sees (a markdown
+intro and a short bootstrap), while `workshop_setup.py` at the repo root is the code those
+cells import. `include=` gives the cells exactly one copy across the three sources; the
+import gives the logic exactly one copy too, and keeps it out of the notebook where it was
+the first thing anyone read. `workshop_setup.py` lives at the root rather than in `tools/`
+because attendees need it — `tools/` is maintainers-only.
+
+Each notebook deliberately keeps its *own* runner rather than reusing the workbook's
+`run_eval` — the lab measures a grid of (config × model) and the multi-provider notebook runs
+on a Converse client, which are different shapes.
 
 ```bash
 python tools/nbbuild.py            # rebuild all four notebooks

@@ -184,10 +184,11 @@ maxTokens=16 -> accepted
 Grok 4.6 has the same floor of 16. The four `gpt-oss` models accept 8. Haiku 4.5 accepts 8.
 
 This matters because a **cheap liveness ping is the standard trick for checking model access**
-— the setup cell's one-token probe reports these models as broken when they are fully
-functional. The notebook's Converse ping therefore uses `PING_MAX_TOKENS = 16`: a multi-model
-probe has to be sized for the strictest model in the pool. These are reasoning models, so the
-floor is presumably reserved thinking budget.
+— the setup's one-token probe (in `workshop_setup.py`, and Anthropic-only for exactly this
+reason) would report these models as broken when they are fully functional. The notebook's
+Converse ping therefore uses `PING_MAX_TOKENS = 16`: a multi-model probe has to be sized for
+the strictest model in the pool. These are reasoning models, so the floor is presumably
+reserved thinking budget.
 
 Note also that the error message says `max_output_tokens` — the provider's *native* parameter
 name, not Converse's `maxTokens`. The provider's error schema leaks through Bedrock's
@@ -217,7 +218,7 @@ because the estimate was wrong in an interesting direction:
 
 | Step | Estimated | Actual |
 |---|---|---|
-| 1. Swap the client to `bedrock-runtime` / `converse` | real work | ~30 lines, both auth paths reused from the existing setup cell |
+| 1. Swap the client to `bedrock-runtime` / `converse` | real work | ~30 lines, both auth paths reused from the existing setup (`workshop_setup.py`) |
 | 2. Rewrite the tool schema | real work | **4 lines** (`to_converse_tool`), and the JSON Schema passes through untouched |
 | 3. Rewrite `parse_transcript` | real work | one function; dict lookups replace `isinstance` checks |
 | 4. Rewrite the judge | real work | two lines changed — the forced tool call is the same idea in different spelling |
