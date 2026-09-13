@@ -88,10 +88,6 @@ banner means you're ready.
 
 ---
 
-## Running it as a workshop
-
----
-
 ## Optional lab # 1
 
 [`Bigger_Model_or_Better_Agent.ipynb`](Bigger_Model_or_Better_Agent.ipynb) is separate and
