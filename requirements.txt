@@ -1,0 +1,15 @@
+# NAMER Tech Summit — Building an Eval (Claude on Amazon Bedrock)
+#
+#     python3 -m venv .venv && source .venv/bin/activate    # Windows: .venv\Scripts\activate
+#     pip install -r requirements.txt
+#
+# then select the .venv interpreter as your notebook kernel. Full guide: SETUP.md
+# Floors guarantee the API surface the notebook uses. Verified against anthropic 0.120.x.
+
+anthropic[bedrock]>=0.69   # AnthropicBedrock (the bedrock-runtime client) + tool use. The
+                           # [bedrock] extra adds boto3/botocore, needed only for the IAM
+                           # auth path — harmless either way.
+ipykernel>=6               # notebook kernel
+
+# Only needed if you rebuild the notebooks from tools/ (facilitators/maintainers):
+# nbformat>=5

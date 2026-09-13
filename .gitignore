@@ -1,0 +1,14 @@
+# Credentials — yours live in .env, which is never committed.
+.env
+*.local
+
+# Eval output
+eval_results/
+demo/eval_results/
+
+# Local environments / cruft
+.venv/
+venv/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
