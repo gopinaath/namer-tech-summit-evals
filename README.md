@@ -6,8 +6,11 @@ A self-contained, ~90 minute workshop (plus 10 for setup). You build an eval sui
 small AI shopping assistant, use it to find out exactly where the agent breaks, fix it, and
 then prove the fix worked — with numbers rather than vibes.
 
-Everything runs against **Claude on Amazon Bedrock**. Nothing in this folder depends on
-the rest of the repository, so it can be zipped and handed out on its own.
+The main workshop and the companion lab run against **Claude on Amazon Bedrock**. A separate
+companion notebook, [`Multi_Provider_on_Bedrock.ipynb`](Multi_Provider_on_Bedrock.ipynb),
+extends the same eval to **OpenAI's GPT 5.6 / GPT 6 reasoning models** through Bedrock's
+Converse API. Nothing in this folder depends on the rest of the repository, so it can be
+zipped and handed out on its own.
 
 ---
 
@@ -18,10 +21,11 @@ the rest of the repository, so it can be zipped and handed out on its own.
 | [`Building_an_Eval.ipynb`](Building_an_Eval.ipynb) | **The workbook.** What attendees work in. Cells marked ✏️ YOUR TURN are theirs to fill in. |
 | [`demo/Building_an_Eval_DEMO.ipynb`](demo/Building_an_Eval_DEMO.ipynb) | **The worked demo.** Every blank filled. Run it live, or hand it out afterwards. |
 | [`Bigger_Model_or_Better_Agent.ipynb`](Bigger_Model_or_Better_Agent.ipynb) | **The companion lab.** A worked experiment, not a fill-in: measures a bigger model against a better-engineered agent on the same suite. Optional, standalone, ~20 min. |
+| [`Multi_Provider_on_Bedrock.ipynb`](Multi_Provider_on_Bedrock.ipynb) | **The multi-provider companion.** Claude Haiku 4.5 against OpenAI's GPT 5.6 / GPT 6 reasoning models through Bedrock's Converse API — the same agent, the same graders, ported. Optional, standalone, ~20 min. |
 | [`FACILITATOR.md`](FACILITATOR.md) | Timings, talk track, the failures to expect, and what to do when the room gets stuck. |
 | [`SETUP.md`](SETUP.md) | Bedrock credentials, Python environment, and the errors people actually hit. |
-| `requirements.txt` | Two packages. That's the whole dependency list. |
-| [`multi-provider.md`](multi-provider.md) | Why the notebook is Anthropic-only, and what running it on OpenAI/xAI models via Bedrock's Converse API would take. Investigation notes. |
+| `requirements.txt` | Three packages. That's the whole dependency list. |
+| [`multi-provider.md`](multi-provider.md) | Investigation notes behind the multi-provider notebook: what was probed, what broke, and why the Converse path was chosen. Also the xAI and open-weight findings that stayed *out* of the notebook. |
 | `tools/` | Notebook build scripts, plus `check_structured_outputs.py` — a pre-session check that Part 6's `output_config` table still matches your account. Only needed if you're *running or maintaining* the workshop. |
 
 ---
@@ -38,7 +42,7 @@ parts you build the machinery to prove that:
 4. **Run it** — get a baseline, then a *real* baseline across multiple runs
 5. **Fix the agent** — and use `compare_results` to show the gain and catch regressions
 6. **LLM-as-judge** — grade the responses no string match can handle
-7. **Compare models** — Haiku, Sonnet, Fable 5 and Fable 5.1 on your own suite, scored
+7. **Compare models** — Haiku, Sonnet and Fable 5.1 on your own suite, scored
    against tokens and latency; then v1 *and* v2 across Sonnet 5, Opus 5 and Fable 5.1, to
    settle whether a higher-tier model can substitute for actually fixing the agent
 
@@ -97,11 +101,15 @@ banner means you're ready.
 - Bedrock **model access** granted for Claude (Bedrock console → Model access). Granted per
   account, one model at a time. Any region with a Bedrock endpoint works — the notebook uses
   global inference profiles, so you don't need to hunt for a region that has every model.
+- For `Multi_Provider_on_Bedrock.ipynb` only: also grant access to at least one OpenAI GPT
+  model (e.g. `gpt-6-astra`). Same console page, same account-level grant. Without it that
+  notebook still runs, but it has one column instead of two and nothing to compare.
 - A few dollars of Bedrock usage per attendee for a full pass. Everything up to Part 7 runs
-  on Haiku; Part 7 is the bulk of the cost — it repeats the suite on Sonnet, Fable 5 and
+  on Haiku; Part 7 is the bulk of the cost — it repeats the suite on Sonnet and
   Fable 5.1, then runs both agent versions across the tier ladder. Trim `SWEEP_EXTRA` and
   `TIER_MODELS` in those cells to cut it back. The companion lab is a few dollars more, most
-  of it on Haiku; trim `RUNS`, `LADDER_MODELS` and `CONFIG_LADDER`.
+  of it on Haiku; trim `RUNS`, `LADDER_MODELS` and `CONFIG_LADDER`. The multi-provider
+  notebook is the cheapest of the three — about 70 calls, most of them tiny.
 
 ---
 
@@ -147,26 +155,50 @@ the same `.env`.
 
 ---
 
+## The multi-provider companion
+
+[`Multi_Provider_on_Bedrock.ipynb`](Multi_Provider_on_Bedrock.ipynb) answers the other
+question the workshop raises and doesn't settle: **does this eval still work if the model
+isn't Claude?**
+
+It ports the workshop's agent, graders, runner and judge from `anthropic.AnthropicBedrock` to
+Bedrock's **Converse** API, and runs the same six-task suite on Claude Haiku 4.5 and on
+OpenAI's `global.openai.gpt-6-astra`. The answer turns out to be encouraging and specific: the
+graders port with *zero* changes, the whole tool-use protocol ports, and what breaks is six
+small things — `temperature` refused outright, a `maxTokens` floor of 16 that makes a
+one-token liveness ping report a working model as unreachable, `reasoningContent` blocks that
+appear at unpredictable positions, `redactedContent` arriving as `bytes` that `json.dumps`
+refuses, `toolUseId` formats that differ, and reasoning tokens that `usage` never reports.
+
+Scope is deliberately narrow: two providers, one wire format. It is not a provider survey and
+not a leaderboard — six tasks cannot characterise a model, they can only exercise a harness.
+It needs the same `.env` plus one OpenAI model grant; with only Claude granted it still runs
+end to end, minus the second column.
+
+---
+
 ## Maintaining the workshop
 
-Three notebooks are generated from two percent-format sources, so the setup cell, the
+Four notebooks are generated from three percent-format sources, so the setup cell, the
 harness and the prose can't drift between variants:
 
 ```
-tools/workbook_src.py      source for the workbook and the demo (plain Python, percent format)
-tools/lab_src.py           source for the companion lab
-tools/demo_cells/<id>.py   worked solutions that replace cells tagged `# %% id=<id>`
-tools/shared/setup.py      cells spliced into both sources by `# %% include=setup`
-tools/nbbuild.py           builds all three .ipynb files
+tools/workbook_src.py       source for the workbook and the demo (plain Python, percent format)
+tools/lab_src.py            source for the companion lab
+tools/multiprovider_src.py  source for the multi-provider Converse notebook
+tools/demo_cells/<id>.py    worked solutions that replace cells tagged `# %% id=<id>`
+tools/shared/setup.py       cells spliced into every source by `# %% include=setup`
+tools/nbbuild.py            builds all four .ipynb files
 ```
 
-`include=` exists so the credential and install handling has exactly one copy: the lab
-needs the same three setup cells as the workbook, and two copies would drift. The lab
-deliberately has its *own* runner rather than reusing the workbook's `run_eval` — it
-measures a grid of (config × model) rather than one suite, which is a different shape.
+`include=` exists so the credential and install handling has exactly one copy: all three
+sources need the same setup cells, and three copies would drift. Each notebook deliberately
+keeps its *own* runner rather than reusing the workbook's `run_eval` — the lab measures a
+grid of (config × model) and the multi-provider notebook runs on a Converse client, which are
+different shapes.
 
 ```bash
-python tools/nbbuild.py            # rebuild all three notebooks
+python tools/nbbuild.py            # rebuild all four notebooks
 python tools/nbbuild.py --check    # exit 1 if a notebook is stale (use in CI)
 ```
 

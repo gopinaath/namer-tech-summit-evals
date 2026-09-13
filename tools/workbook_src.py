@@ -1050,10 +1050,10 @@ compare_results(baseline_multi, improved, "v1", "v2")
 # | Model | `output_config` on `bedrock-runtime` |
 # |---|---|
 # | Haiku 4.5, Sonnet 4.5, Sonnet 4.6, Opus 4.5, Opus 4.6 | works |
-# | Opus 4.7, Opus 4.8, Sonnet 5, Opus 5, Fable 5, Fable 5.1 | `400 output_config.format: Extra inputs are not permitted` |
+# | Opus 4.7, Opus 4.8, Sonnet 5, Opus 5, Fable 5.1 | `400 output_config.format: Extra inputs are not permitted` |
 #
 # The split is generational, not arbitrary: everything up to the 4.6 families accepts it, and
-# nothing from 4.7 onwards does. **All eleven accept it on the Anthropic API directly** — so
+# nothing from 4.7 onwards does. **All ten accept it on the Anthropic API directly** — so
 # this is a Bedrock parity gap that the newest models haven't closed yet, not anything you've
 # done wrong, and not a capability those models lack. It isn't beta-gated either; an
 # `anthropic-beta` header doesn't unlock it.
@@ -1233,8 +1233,8 @@ compare_results(full_v1, full, "v1", "v2")
 # argument: a suite that scores any agent you point it at.
 #
 # The question worth asking is **not** "which model is best?" It's: *does a bigger model
-# earn its cost on my workload?* The sweep runs the same suite across four models — Haiku
-# 4.5, Sonnet 5, Fable 5 and Fable 5.1 — and puts pass rate next to latency and tokens.
+# earn its cost on my workload?* The sweep runs the same suite across three models — Haiku
+# 4.5, Sonnet 5 and Fable 5.1 — and puts pass rate next to latency and tokens.
 #
 # Read the table in that order. Pass rate first, because a cheaper model that passes
 # everything ends the discussion. Only when pass rates differ do latency and tokens decide
@@ -1256,17 +1256,17 @@ compare_results(full_v1, full, "v1", "v2")
 # > sweep that reports honest numbers beats a fast one that reports `0/9` and sends you
 # > hunting a bug that isn't there.
 # >
-# > **Four models is four times the cost of one.** Expect this cell to take a few minutes.
+# > **Three models is three times the cost of one.** Expect this cell to take a few minutes.
 # > Trim `SWEEP_EXTRA` below if you're short on time or budget — everything above this point
 # > runs on Haiku alone.
 
 # %%
 # Which models to put in the table. Opus is left out by default — it's the slow, expensive
-# end of the range, and the point lands without it. Add it to SWEEP_EXTRA for a fifth row.
+# end of the range, and the point lands without it. Add it to SWEEP_EXTRA for a fourth row.
 #
 # Anything your account can't reach was already dropped from AVAILABLE_MODELS by the setup
 # cell, so this list shrinks gracefully instead of filling the table with ERRORs.
-SWEEP_EXTRA = [FABLE_MODEL, FABLE_5_1_MODEL]   # add BIG_MODEL here to include Opus
+SWEEP_EXTRA = [FABLE_5_1_MODEL]                # add BIG_MODEL here to include Opus
 SWEEP_MODELS = [m for m in AVAILABLE_MODELS if m in [FAST_MODEL, MODEL] + SWEEP_EXTRA]
 print(f"Sweeping: {', '.join(short_model_name(m) for m in SWEEP_MODELS)}")
 
@@ -1300,7 +1300,7 @@ if any(r.get("error") for _res in model_results.values() for r in _res["runs"][0
           "affected model before drawing any conclusion from this table.")
 elif len(_clean) > 1:
     # The likely outcome after a competent v2, and the most useful thing in this part: read
-    # it out loud rather than letting people skim past four identical numbers.
+    # it out loud rather than letting people skim past three identical numbers.
     _scores = {sum(1 for t in r["runs"][0] if t["passed"]) for r in _clean.values()}
     _fastest = min(_clean, key=lambda m: sum(t["metrics"]["time"]
                                              for t in _clean[m]["runs"][0]))

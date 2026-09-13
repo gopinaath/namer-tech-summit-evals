@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Build the workshop notebooks from percent-format Python sources.
 
-Three notebooks, two sources:
+Four notebooks, three sources:
 
   Building_an_Eval.ipynb              the participant workbook, from workbook_src.py
   demo/Building_an_Eval_DEMO.ipynb    the same, with the ✏️ YOUR TURN cells replaced by
                                       the worked solutions in demo_cells/
   Bigger_Model_or_Better_Agent.ipynb  the model-vs-tuning lab, from lab_src.py
+  Multi_Provider_on_Bedrock.ipynb     the Claude-vs-GPT Converse lab, from
+                                      multiprovider_src.py
 
 Keeping one source per notebook means a fix to the harness, the setup cell or the prose
 can't drift between variants — only the cells that are genuinely different are duplicated.
@@ -48,12 +50,14 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 SRC = HERE / "workbook_src.py"
 LAB_SRC = HERE / "lab_src.py"
+MULTI_SRC = HERE / "multiprovider_src.py"
 DEMO_CELLS = HERE / "demo_cells"
 SHARED = HERE / "shared"
 
 WORKBOOK = ROOT / "Building_an_Eval.ipynb"
 DEMO = ROOT / "demo" / "Building_an_Eval_DEMO.ipynb"
 LAB = ROOT / "Bigger_Model_or_Better_Agent.ipynb"
+MULTI = ROOT / "Multi_Provider_on_Bedrock.ipynb"
 
 
 def parse_percent(text: str) -> list[tuple[str, str | None, str]]:
@@ -173,6 +177,8 @@ def main() -> int:
     ]
     if LAB_SRC.is_file():
         variants.append((LAB, build(load_source(LAB_SRC))))
+    if MULTI_SRC.is_file():
+        variants.append((MULTI, build(load_source(MULTI_SRC))))
 
     stale = []
     for dest, nb in variants:

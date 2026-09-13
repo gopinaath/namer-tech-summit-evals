@@ -14,7 +14,7 @@ cd NAMER-Tech-Summit
 
 python3 -m venv .venv
 source .venv/bin/activate            # Windows PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt      # anthropic[bedrock] + ipykernel
+pip install -r requirements.txt      # anthropic[bedrock] + boto3 + ipykernel
 ```
 
 Then open the folder in VS Code (Python + Jupyter extensions), open
@@ -34,6 +34,13 @@ container and installs straight into it.
 Request **Model access** for the Anthropic models in the Bedrock console first — granted per
 account, one model at a time, and the usual reason a valid credential still fails. Any region
 with a Bedrock endpoint works.
+
+> **Doing `Multi_Provider_on_Bedrock.ipynb` as well?** Request access to at least one OpenAI
+> GPT model at the same time — `global.openai.gpt-6-astra` is the notebook's default. Same
+> console page, same account-level grant. These are inference profiles, so the `global.`
+> prefix is part of the model ID and a bare `openai.gpt-6-astra` returns a 400. Without the
+> grant the notebook still runs start to finish, but with one column instead of two and no
+> cross-provider comparison — which is the point of it.
 
 `cp .env.example .env`, then use whichever credential you have.
 
@@ -66,12 +73,25 @@ Run the first two cells of `Building_an_Eval.ipynb`. You're looking for:
 ```
 ✓ Ready — anthropic installed for /…/.venv/bin/python
 ✓ Connected to Claude on Bedrock — us-east-1, auth: api-key. Models available:
-  haiku-4-5, sonnet-5, opus-5, fable-5, fable-5-1
+  haiku-4-5, sonnet-5, opus-5, fable-5-1
 ```
 
 The cell pings each model rather than inspecting the credential — an ungranted model looks
 identical to a working one until you call it. Fewer models listed is fine; only Part 7 is
 affected.
+
+For `Multi_Provider_on_Bedrock.ipynb`, run the first **five** cells. You want the same green
+Claude banner, and then the Converse ping block with at least one GPT model marked `✓`:
+
+```
+  ✓ haiku-4-5      global.anthropic.claude-haiku-4-5-20251001-v1:0
+  ✓ gpt-6-astra    global.openai.gpt-6-astra
+
+Converse ready — us-west-2, auth: api-key. 2 of 2 candidate models reachable.
+```
+
+A `✗ … (ValidationException)` on the GPT row is a missing model grant, not a broken notebook —
+the notebook says so itself and carries on with one column.
 
 > `AWS_REGION` already set in your shell overrides `.env`.
 
@@ -85,7 +105,6 @@ Global inference profiles, so any Bedrock region works:
 FAST_MODEL      = "global.anthropic.claude-haiku-4-5-20251001-v1:0"  # agent + judge
 MODEL           = "global.anthropic.claude-sonnet-5"
 BIG_MODEL       = "global.anthropic.claude-opus-5"
-FABLE_MODEL     = "global.anthropic.claude-fable-5"
 FABLE_5_1_MODEL = "global.anthropic.claude-fable-5-1"
 ```
 
@@ -97,12 +116,25 @@ they've been left with only one model to work with.)
 Swap `global.` for your geography (`us.`, `eu.`, `apac.`) if data residency rules out global
 routing, and stay in a matching region.
 
+`Multi_Provider_on_Bedrock.ipynb` uses `FAST_MODEL` as its Anthropic control, plus OpenAI
+inference profiles:
+
+```python
+GPT_MODELS = {"gpt-6-astra": "global.openai.gpt-6-astra"}     # the default, and the only one
+# global.openai.gpt-5.6-sol / -luna / -terra                  # one uncommented line away
+```
+
+These need the geography prefix and an account-level grant for the same reasons the Claude
+profiles do. Only one runs by default: on every capability probe in that notebook all four
+answer identically, so the other three cost four times as much to print the same row. The
+notebook says where they *do* diverge.
+
 ---
 
 ## Cost
 
 **A few dollars per full pass.** Parts 1-6 are all Haiku. Part 7 is most of the spend, in two
-cells: the sweep repeats the 9-task suite on Sonnet 5, Fable 5 and Fable 5.1, then the tier
+cells: the sweep repeats the 9-task suite on Sonnet 5 and Fable 5.1, then the tier
 comparison runs *both* agent versions on up to four models. Set `SWEEP_EXTRA = []` and trim
 `TIER_MODELS` to cut it right back. `print_summary()` prints token counts as you go.
 
@@ -118,6 +150,14 @@ descending order of saving:
 
 It prints running token and latency totals in its final table rather than a dollar figure,
 because per-token prices move and a number baked into a notebook goes stale silently.
+
+**The multi-provider notebook** (`Multi_Provider_on_Bedrock.ipynb`) is the cheapest of the
+three: about **70 model calls** on its default two-model configuration, most of them tiny
+(liveness pings, capability probes and judge fixtures; 34 of the 70 are agent turns). It caps
+`maxTokens` at 1024 everywhere. No dollar figure is given, for the reason above *and* one
+specific to it: per-token rates differ by provider, so any single number would be wrong for at
+least one column. Token counts are printed; the notebook also explains why you should not
+compare them across providers.
 
 ---
 
@@ -172,7 +212,7 @@ chronic, request a quota increase.
 
 Structured outputs are accepted on Bedrock through the 4.6 families (Haiku 4.5, Sonnet 4.5,
 Sonnet 4.6, Opus 4.5, Opus 4.6) and rejected from 4.7 onwards (Opus 4.7, Opus 4.8, Sonnet 5,
-Opus 5, Fable 5, Fable 5.1) — even though all of them accept it on the Anthropic API directly.
+Opus 5, Fable 5.1) — even though all of them accept it on the Anthropic API directly.
 A beta header doesn't unlock it. The newer model is the one missing the feature, so don't
 assume support carries upward.
 

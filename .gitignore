@@ -12,3 +12,6 @@ venv/
 __pycache__/
 .ipynb_checkpoints/
 .DS_Store
+
+# Presentation material — local only, not part of the handout
+presentation/

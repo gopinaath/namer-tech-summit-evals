@@ -43,8 +43,10 @@ Running a 60-minute slot? Do setup, Part 1, talk Part 2, then run Parts 3-5 as a
 guided exercise using the demo notebook on screen. Skip 6 and 7 entirely; point at them as
 homework.
 
-Have a **two-hour** slot, or a room that argues about model tiers? Add the companion lab —
-see the section below. It is not part of the 90 minutes and doesn't need to be.
+Have a **two-hour** slot? Add one of the two companions, both ~20 minutes and both outside the
+90. For a room that argues about **model tiers**, add the companion lab. For a room that argues
+about **vendors** — "we're not a Claude shop", "does this transfer?" — add
+`Multi_Provider_on_Bedrock.ipynb`. Sections for both are below. Don't try to add both.
 
 ---
 
@@ -55,9 +57,12 @@ see the section below. It is not part of the 90 minutes and doesn't need to be.
       access is granted per account, one model at a time, and can take time to come through.
 - [ ] Have 2-3 spare Bedrock API keys for people whose access didn't come through. This
       saves the workshop more often than anything else on this list.
-- [ ] Check your own setup banner lists **all five** models. Any region works — the notebook
+- [ ] Check your own setup banner lists **all four** models. Any region works — the notebook
       uses global inference profiles — so if it lists only Haiku, that's an account grant to
       chase, not a region to change. Part 7 has nothing to compare without a second model.
+- [ ] Running `Multi_Provider_on_Bedrock.ipynb`? Ask for the OpenAI grant in the same 24-hour
+      notice — one GPT model is enough, `global.openai.gpt-6-astra` is its default. Without it
+      that notebook runs but has nothing to compare against.
 - [ ] Decide whether to hand out `demo/` at the start. Recommendation: **no**. Hand it out
       after Part 5, or attendees will read the answers instead of thinking. Say up front
       that they'll get it — that stops the anxious asking.
@@ -257,7 +262,7 @@ Three things worth saying:
 2. **`output_config` support on Bedrock is per model, not per endpoint.** Structured outputs
    work on Bedrock through the 4.6 families (Haiku 4.5, Sonnet 4.5, Sonnet 4.6, Opus 4.5,
    Opus 4.6) and return `400 output_config.format: Extra inputs are not permitted` from 4.7
-   onwards (Opus 4.7, Opus 4.8, Sonnet 5, Opus 5, Fable 5, Fable 5.1). **All eleven accept it
+   onwards (Opus 4.7, Opus 4.8, Sonnet 5, Opus 5, Fable 5.1). **All ten accept it
    on the Anthropic API directly.** The notebook uses a **forced tool call** instead —
    `tool_choice={"type": "tool", "name": "submit_verdict"}` with the verdict schema as the
    tool's `input_schema`.
@@ -302,7 +307,7 @@ if you hadn't happened to read the transcript?
 
 ## Part 7 — Compare models
 
-Runs the same suite on four models — Haiku 4.5, Sonnet 5, Fable 5, Fable 5.1 — sequentially,
+Runs the same suite on three models — Haiku 4.5, Sonnet 5, Fable 5.1 — sequentially,
 because this is the heaviest cell in the notebook and Bedrock quotas are per model. Anything
 the setup cell couldn't reach is already dropped, so nobody gets a table full of errors.
 
@@ -310,7 +315,7 @@ the setup cell couldn't reach is already dropped, so nobody gets a table full of
 discussion below doesn't need the output to have landed yet.
 
 **The question is not "which model is best."** It's *does the bigger model earn its cost on
-my workload?* On this suite, after a competent v2, **all four pass 9/9.** Haiku is roughly
+my workload?* On this suite, after a competent v2, **all three pass 9/9.** Haiku is roughly
 twice as fast as the others and the cheapest. That's the answer, and it's a useful one.
 
 Attendees will want to read that as "Haiku is the best model", so head it off directly:
@@ -469,6 +474,73 @@ The lab argues against itself in its last cell, and you should too:
 narrative lines are computed from the data rather than hardcoded, so the notebook will
 describe whatever it actually measures — but you want to know roughly what the room will
 see, and which of the three talking points above survived on your account.
+
+---
+
+## The multi-provider companion — `Multi_Provider_on_Bedrock.ipynb`
+
+Optional, standalone, **~20 minutes**. Use it when someone asks the question the workshop
+raises and never answers: *does any of this still work if the model isn't Claude?*
+
+**Prerequisite: they should have done `Building_an_Eval.ipynb` first.** Not for the
+credentials — it needs the same `.env` and nothing else — but because the whole notebook is a
+diff against a harness they are assumed to already recognise. Someone who has not seen
+`parse_transcript` and the graders will read the ported versions as ordinary code rather than
+as *the same code, changed in exactly two places*, and that comparison is the entire point.
+
+**What it does.** It moves the agent, graders, runner and judge from
+`anthropic.AnthropicBedrock` to Bedrock's **Converse** API, then runs one six-task suite on
+Claude Haiku 4.5 and on `global.openai.gpt-6-astra`. The headline is deliberately
+anticlimactic: the graders needed **zero** changes, the tool-use protocol ported whole, and
+what broke was six small things. If the room expects a bake-off they will be disappointed; set
+that expectation up front. The subject is the harness, not the models.
+
+**Also needs an OpenAI model grant** (Bedrock console → Model access, same page as Claude).
+Ask attendees to request it when they request Claude, a day ahead — the grant is
+account-level and not instant.
+
+### The three things worth stopping on
+
+- **The silent failure** (early, right after the setup cells). Pointing the *Anthropic* client
+  at a GPT model returns `400 unknown_parameter: 'anthropic_version'` — fine, loud, fixable.
+  But the notebook then shows the same mistake against a different model returning **HTTP 200
+  with `content = None`**, which flows straight through `parse_transcript` into an empty
+  transcript and a `0/6` score. Stop here and ask the room what that would have looked like in
+  their sweep table. The answer — "a broken agent, or a missing grant" — is the reason this
+  notebook exists. Nobody diagnoses a wire-format mismatch from a score.
+- **The reasoning-zero trap.** The results table has a `reasoning` column, and for GPT it
+  reads `0`. Somebody will read that as "the reasoning model didn't reason". It is a property
+  of the workload's turn shapes: `reasoningContent` blocks appear on some turns and not others
+  *within one conversation*, `reasoning.effort` moves some of them and not the `toolUse` turn,
+  and no provider reports a reasoning token count in `usage` at all. The notebook measures this
+  turn by turn rather than asserting it. Let them make the wrong inference first, then show
+  them the matrix.
+- **Token counts are not comparable across providers.** Both models made identical turn and
+  tool-call counts on all six tasks, and Haiku reported roughly **20,500 input tokens against
+  GPT's 8,198** for that same work. Two tokenizers counting two serialisations. This is the
+  slide to point at when someone proposes ranking vendors by cost-per-token off one run.
+
+**Cost:** about **70 model calls** on the default two-model configuration, 34 of them agent
+turns and the rest pings, capability probes and judge fixtures, all with `maxTokens` capped at
+1024. The cheapest of the three notebooks by a wide margin. No dollar figure appears in it, on
+purpose: per-token rates differ by provider, so any single number would be wrong for at least
+one column.
+
+### If a grant is missing
+
+**It degenerates gracefully and stays worth running.** With only Claude reachable the notebook
+runs start to finish with one column instead of two: the capability matrix shows a single
+provider, the side-by-side comparison says out loud that it has only one model to work with,
+and the port itself — the adapter, the tool-schema translation, the parser — is all still
+there to read. What is lost is the comparison, which is most of the value. If the whole room
+is missing the grant, drive it from your own screen instead.
+
+**Prep:** run it once yourself, and do it on the account you'll demo from. Provider behaviour
+is granted per account and drifts; the notebook prints what it actually measures rather than
+quoting stored numbers, so it will not lie to you, but you want to know which of the three
+talking points above survived. `multi-provider.md` is the working record behind it, including
+the xAI and open-weight findings that stayed out and two open questions — worth skimming if
+anyone asks "what about Grok?".
 
 ---
 

@@ -233,13 +233,12 @@ else:
 MODEL = "global.anthropic.claude-sonnet-5"                       # the workhorse
 FAST_MODEL = "global.anthropic.claude-haiku-4-5-20251001-v1:0"   # cheap + quick (agent, judge)
 BIG_MODEL = "global.anthropic.claude-opus-5"                     # the largest, for comparison
-FABLE_MODEL = "global.anthropic.claude-fable-5"                  # \ two more points on the
-FABLE_5_1_MODEL = "global.anthropic.claude-fable-5-1"            # / capability/cost curve
+FABLE_5_1_MODEL = "global.anthropic.claude-fable-5-1"            # another point on the curve
 
 # Everything except FAST_MODEL is optional: the notebook runs start to finish on Haiku alone.
 # The setup cell pings each of these and keeps the ones your account can actually reach, so a
 # missing grant costs you a table row rather than an hour of debugging.
-OPTIONAL_MODELS = [MODEL, BIG_MODEL, FABLE_MODEL, FABLE_5_1_MODEL]
+OPTIONAL_MODELS = [MODEL, BIG_MODEL, FABLE_5_1_MODEL]
 
 
 def short_model_name(model_id):
@@ -345,10 +344,13 @@ _status(True, f"Connected to Claude on Bedrock — {_region}, auth: {AUTH_MODE}.
               f"Models available: "
               f"{', '.join(short_model_name(m) for m in AVAILABLE_MODELS)}.")
 if _missing:
+    # Deliberately not named after one notebook's Part 7: this cell is spliced into every
+    # notebook, and only one of them has a Part 7. Say what is true everywhere instead.
     print(f"Note: {', '.join(short_model_name(m) for m in _missing)} not available to this "
-          f"account — the Part 7 model comparison will skip them. Everything else works. "
-          f"These are global inference profiles, so changing AWS_REGION won't help: request "
-          f"access in the Bedrock console under Model access.")
+          f"account. Nothing below breaks — any comparison that would have used them leaves "
+          f"them out, and a notebook that doesn't use them is unaffected. These are global "
+          f"inference profiles, so changing AWS_REGION won't help: request access in the "
+          f"Bedrock console under Model access.")
 
 # The working client used by everything below.
 client = make_client()

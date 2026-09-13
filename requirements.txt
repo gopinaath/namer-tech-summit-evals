@@ -7,8 +7,19 @@
 # Floors guarantee the API surface the notebook uses. Verified against anthropic 0.120.x.
 
 anthropic[bedrock]>=0.69   # AnthropicBedrock (the bedrock-runtime client) + tool use. The
-                           # [bedrock] extra adds boto3/botocore, needed only for the IAM
-                           # auth path — harmless either way.
+                           # [bedrock] extra adds boto3/botocore: optional for the main
+                           # workshop (only the IAM auth path needs it), but REQUIRED by
+                           # Multi_Provider_on_Bedrock.ipynb, which drives Bedrock's Converse
+                           # API through botocore directly on both auth paths. That notebook
+                           # pip-installs boto3 itself if it is missing, so leaving the extra
+                           # off costs a slow first cell rather than a failure.
+boto3>=1.40                # Bedrock's Converse API, used by Multi_Provider_on_Bedrock.ipynb
+                           # on both auth paths. Listed directly rather than left to the
+                           # [bedrock] extra, whose own floor (botocore>=1.31.57) predates
+                           # `converse` — install at that floor and the client exists but the
+                           # operation doesn't, which is a worse error than a missing package.
+                           # 1.40 is "comfortably recent", not a measured minimum; the notebook
+                           # was run clean on 1.43.93. Lower it if you have a reason to.
 ipykernel>=6               # notebook kernel
 
 # Only needed if you rebuild the notebooks from tools/ (facilitators/maintainers):

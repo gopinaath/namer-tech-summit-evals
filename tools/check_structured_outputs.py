@@ -33,8 +33,7 @@ WORKSHOP_MODELS = [
     "global.anthropic.claude-haiku-4-5-20251001-v1:0",   # JUDGE_MODEL / FAST_MODEL
     "global.anthropic.claude-sonnet-5",                  # MODEL
     "global.anthropic.claude-opus-5",                    # BIG_MODEL
-    "global.anthropic.claude-fable-5",
-    "global.anthropic.claude-fable-5-1",
+    "global.anthropic.claude-fable-5-1",           # FABLE_5_1_MODEL
 ]
 
 # A verdict schema shaped like Part 6's, so this tests the thing the judge would actually do.
