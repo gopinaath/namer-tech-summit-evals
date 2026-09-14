@@ -231,21 +231,36 @@ def _load_credentials():
     # Tiny .env parser (no python-dotenv dependency). Re-read on every run, so pasting a
     # value and re-running picks it up. A real value already in the environment (shell / CI)
     # wins.
+    # `export FOO=bar` is stripped to `FOO`, because a .env written by anyone used to shell
+    # profiles has the prefix and the failure it causes is silent and badly misdirected: the
+    # key becomes the literal string "export AWS_BEARER_TOKEN_BEDROCK", nothing ever reads it,
+    # the token looks present in the file, and setup falls through to IAM and then reports a
+    # *model access* problem — sending you to the wrong console page entirely. python-dotenv
+    # strips it; this parser has to as well. Keeping the prefix in the file is also legitimate:
+    # it is what lets you `source .env` in a terminal.
     file_vars = {}
     for line in (env_file.read_text().splitlines() if env_file.exists() else []):
         line = line.strip()
         if line and not line.startswith("#") and "=" in line:
             k, v = line.split("=", 1)
-            file_vars[k.strip()] = v.strip().strip('"').strip("'")
+            k = k.strip()
+            if k.startswith("export "):
+                k = k[len("export "):].strip()
+            file_vars[k] = v.strip().strip('"').strip("'")
     for k, v in file_vars.items():
         os.environ.setdefault(k, v)
 
     _token = os.environ.get("AWS_BEARER_TOKEN_BEDROCK", "").strip()
-    if _token.startswith("paste-"):
-        # The placeholder from the template never counts as a credential. Remove it from the
-        # environment too: the SDK reads AWS_BEARER_TOKEN_BEDROCK itself, and refuses to
-        # accept a bearer token and IAM credentials at the same time — so leaving the
-        # placeholder set would break the IAM path with a confusing "cannot specify both".
+    if not _token or _token.startswith("paste-"):
+        # Neither the template's placeholder nor an empty value counts as a credential, and
+        # both have to be *removed from the environment*, not just ignored here. Everything
+        # downstream reads AWS_BEARER_TOKEN_BEDROCK for itself and treats present-but-empty
+        # as "use bearer auth": the anthropic SDK raises "Cannot specify both `api_key` and
+        # AWS credentials" the moment we also pass aws_profile, and botocore signs with an
+        # empty token and gets back IncompleteSignatureException. Empty is the *documented*
+        # state of the IAM path — .env.example ships `AWS_BEARER_TOKEN_BEDROCK=` with no
+        # value and SETUP.md Option B says to leave it that way — so without this pop, the
+        # entire SSO / `aws configure` / assumed-role route dies on an unhandled traceback.
         _token = ""
         os.environ.pop("AWS_BEARER_TOKEN_BEDROCK", None)
     _region = (os.environ.get("AWS_REGION", "").strip()

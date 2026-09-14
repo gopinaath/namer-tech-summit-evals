@@ -15,3 +15,6 @@ __pycache__/
 
 # Presentation material — local only, not part of the handout
 presentation/
+
+# MCP tool scratch output
+.playwright-mcp/

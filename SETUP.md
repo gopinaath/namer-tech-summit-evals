@@ -52,14 +52,28 @@ with a Bedrock endpoint works.
 > grant the notebook still runs start to finish, but with one column instead of two and no
 > cross-provider comparison — which is the point of it.
 
-`cp .env.example .env`, then use whichever credential you have.
+**Bring your own credential** — a Bedrock API key, or an AWS profile you already have. Nothing
+is handed out on the day. `cp .env.example .env`, then use whichever you've got.
 
-**Option A — Bedrock API key** (what most attendees get):
+**Option A — Bedrock API key** (the simplest, and what most people use):
 
 ```ini
 AWS_BEARER_TOKEN_BEDROCK=<paste the whole key>
 AWS_REGION=us-east-1
 ```
+
+Generating one takes a minute: Bedrock console → **API keys** in the left navigation pane →
+either tab. Full instructions:
+[Generate an Amazon Bedrock API key](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-generate.html).
+
+- **Short-term key** — *Short-term API keys* tab → **Generate short-term API keys**. It
+  inherits your own permissions, and works **only in the Region you generated it from**, so
+  switch the console to the Region you're going to put in `.env` *before* generating. It
+  expires with your console session and never lasts more than 12 hours — fine for a workshop,
+  but generate it on the day, not the night before.
+- **Long-term key** — *Long-term API keys* tab → choose an expiry. Bedrock makes an IAM user
+  for it and attaches `AmazonBedrockLimitedAccess`, which covers everything here. Pick this if
+  you'd rather not re-generate halfway through.
 
 **Option B — IAM** (SSO, `aws configure`, assumed role). Leave the bearer token empty:
 
@@ -214,6 +228,12 @@ isn't granted. Rule out the IAM policy first.
 
 API key: paste the whole value, confirm it isn't revoked. IAM: probably expired — `aws sso
 login`, then re-run.
+
+A **short-term** key that worked ten minutes ago and now returns `Authentication failed: Please
+make sure your API Key is valid.` has almost certainly outlived the console session it was
+generated from. Twelve hours is the ceiling, not the guarantee — the session behind the key is
+usually shorter, sometimes much shorter. Generate a new one, or use a long-term key. The same
+message also appears if you use the key from a Region other than the one you generated it in.
 
 ### "The IAM-credentials path needs boto3"
 
